@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Earthquake Detection</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".mp3, .wav, .mseed">
+        <button type="submit">Upload and Predict</button>
+    </form>
+    <div id="result"></div>
+    <canvas id="waveformChart" width="800" height="400"></canvas>
+    <button id="saveChartBtn" style="display:none;">Save Chart as PNG</button>
+    <button id="downloadMseedBtn" style="display:none;">Download Hit Points as MSEED</button>
+
+    <script>
+        let waveformChart; // Declare the chart variable globally
+        let responseData; // Store the response data globally
+
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            axios.post('/', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            .then(response => {
+                responseData = response.data; // Store the response data
+                console.log(responseData); // Inspect the response
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
+
+                if (responseData.prediction === 'Earthquake detected') {
+                    resultDiv.innerHTML += `<p>Time Indices: ${responseData.time_indices.join(', ')}</p>`;
+                    resultDiv.innerHTML += `<p>Amplitudes: ${responseData.amplitudes.join(', ')}</p>`;
+
+                    const ctx = document.getElementById('waveformChart').getContext('2d');
+
+                    // Destroy the existing chart if it exists
+                    if (waveformChart) {
+                        waveformChart.destroy();
+                    }
+
+                    waveformChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: responseData.time_labels,
+                            datasets: [{
+                                label: 'Amplitude',
+                                data: responseData.amplitude_data,
+                                borderColor: 'blue',
+                                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                                borderWidth: 1,
+                                pointRadius: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 5 : 1),
+                                pointBackgroundColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'blue'),
+                                pointBorderWidth: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 0 : 1)
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    type: 'category',
+                                    ticks: {
+                                        callback: function(value, index, values) {
+                                            return new Date(value * 1000).toISOString().substr(11, 8);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Show the save buttons
+                    document.getElementById('saveChartBtn').style.display = 'block';
+                    document.getElementById('downloadMseedBtn').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById('saveChartBtn').addEventListener('click', function() {
+            const imageBase64 = waveformChart.toBase64Image();
+            const link = document.createElement('a');
+            link.href = imageBase64;
+            link.download = 'waveform_chart.png';
+            link.click();
+        });
+
+        document.getElementById('downloadMseedBtn').addEventListener('click', function() {
+            const time_indices = responseData.time_indices;
+            const amplitudes = responseData.amplitudes;
+            const sampling_rate = responseData.sampling_rate; // Ensure this is included in the response
+
+            axios.post('/download_mseed', {
+                time_indices: time_indices,
+                amplitudes: amplitudes,
+                sampling_rate: sampling_rate
+            }, {
+                responseType: 'blob'
+            })
+            .then(response => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'earthquake_hit_points.mseed');
+                document.body.appendChild(link);
+                link.click();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
