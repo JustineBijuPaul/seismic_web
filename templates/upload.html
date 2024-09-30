@@ -1,124 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Earthquake Detection</title>
+    <title>Seismic Quake</title>
+    <meta name="Seismic detect" content="">
+    <meta name="Justine Biju Paul" content="">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/logo-w.svg') }}">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%; 
+            background-color: #2c2c2d;
+            z-index: 1000; /* Ensure it stays on top */
+        }
+    </style>
 </head>
-<body>
-    <h1>Earthquake Detection</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".mp3, .wav, .mseed">
-        <button type="submit">Upload and Predict</button>
-    </form>
-    <div id="result"></div>
-    <canvas id="waveformChart" width="800" height="400"></canvas>
-    <button id="saveChartBtn" style="display:none;">Save Chart as PNG</button>
-    <button id="downloadMseedBtn" style="display:none;">Download Hit Points as MSEED</button>
 
-    <script>
-        let waveformChart; // Declare the chart variable globally
-        let responseData; // Store the response data globally
+<body id="top">
+    <div id="preloader">
+        <div id="loader"></div>
+    </div>
+    <div class="s-pagewrap">
+        <div class="circles">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <header>
+            <a href="{{ url_for('index') }}">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='images/logo-w.svg') }}" alt="Logo" width="60px">
+                    <h1>Seismic Quake</h1>
+                </div>
+            </a>
+        </header>
+        <section class="form-container">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".mp3, .wav, .mseed">
+                <button type="submit">Upload and Predict</button>
+            </form>
+        </section>
+        <section class="result-section">
+            <div id="result"></div>
+            <canvas id="waveformChart" width="800" height="400"></canvas>
+            <div class="button-container" style="display:none;">
+                <button id="saveChartBtn">Save Chart as PNG</button>
+                <button id="downloadMseedBtn">Download Hit Points as MSEED</button>
+            </div>
+        </section>
 
-        document.getElementById('uploadForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
+        <!-- Loader -->
+        <div class="loader-container" id="loader-container">
+            <div class="loader"></div>
+        </div>
 
-            axios.post('/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            })
-            .then(response => {
-                responseData = response.data; // Store the response data
-                console.log(responseData); // Inspect the response
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
+        <script>
+            let waveformChart; // Declare the chart variable globally
+            let responseData; // Store the response data globally
 
-                if (responseData.prediction === 'Earthquake detected') {
-                    resultDiv.innerHTML += `<p>Time Indices: ${responseData.time_indices.join(', ')}</p>`;
-                    resultDiv.innerHTML += `<p>Amplitudes: ${responseData.amplitudes.join(', ')}</p>`;
+            // Function to hide the preloader
+            function hidePreloader() {
+                const preloader = document.getElementById('preloader');
+                preloader.style.display = 'none';
+            }
 
-                    const ctx = document.getElementById('waveformChart').getContext('2d');
+            // Event listener to hide the preloader once the page has loaded
+            window.addEventListener('load', hidePreloader);
 
-                    // Destroy the existing chart if it exists
-                    if (waveformChart) {
-                        waveformChart.destroy();
+            document.getElementById('uploadForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+
+                // Show the loader
+                document.getElementById('loader-container').style.display = 'flex';
+
+                axios.post('/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
                     }
+                })
+                    .then(response => {
+                        responseData = response.data; // Store the response data
+                        console.log(responseData); // Inspect the response
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
 
-                    waveformChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: responseData.time_labels,
-                            datasets: [{
-                                label: 'Amplitude',
-                                data: responseData.amplitude_data,
-                                borderColor: 'blue',
-                                backgroundColor: 'rgba(0, 0, 255, 0.1)',
-                                borderWidth: 1,
-                                pointRadius: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 5 : 1),
-                                pointBackgroundColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'blue'),
-                                pointBorderWidth: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 0 : 1)
-                            }]
-                        },
-                        options: {
-                            scales: {
-                                x: {
-                                    type: 'category',
-                                    ticks: {
-                                        callback: function(value, index, values) {
-                                            return new Date(value * 1000).toISOString().substr(11, 8);
+                        console.log(responseData.prediction)
+                        if (responseData.prediction === 'Seismic Activity Detected') {
+                            const ctx = document.getElementById('waveformChart').getContext('2d');
+
+                            // Destroy the existing chart if it exists
+                            if (waveformChart) {
+                                waveformChart.destroy();
+                            }
+
+                            waveformChart = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: responseData.time_labels,
+                                    datasets: [{
+                                        label: 'Amplitude',
+                                        data: responseData.amplitude_data,
+                                        borderColor: 'hsla(36, 72%, 70%, 1)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                        borderWidth: 1,
+                                        pointRadius: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 5 : 1),
+                                        pointBackgroundColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'white'),
+                                        pointBorderColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'transparent'),
+                                        pointBorderWidth: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 0 : 1)
+                                    }]
+                                },
+                                options: {
+                                    scales: {
+                                        x: {
+                                            type: 'category',
+                                            ticks: {
+                                                callback: function (value, index, values) {
+                                                    return new Date(value * 1000).toISOString().substr(11, 8);
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
+                            });
+
+                            // Show the save buttons
+                            document.querySelector('.button-container').style.display = 'flex';
                         }
+
+                        // Hide the loader
+                        document.getElementById('loader-container').style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Hide the loader in case of error
+                        document.getElementById('loader-container').style.display = 'none';
                     });
-
-                    // Show the save buttons
-                    document.getElementById('saveChartBtn').style.display = 'block';
-                    document.getElementById('downloadMseedBtn').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
             });
-        });
 
-        document.getElementById('saveChartBtn').addEventListener('click', function() {
-            const imageBase64 = waveformChart.toBase64Image();
-            const link = document.createElement('a');
-            link.href = imageBase64;
-            link.download = 'waveform_chart.png';
-            link.click();
-        });
-
-        document.getElementById('downloadMseedBtn').addEventListener('click', function() {
-            const time_indices = responseData.time_indices;
-            const amplitudes = responseData.amplitudes;
-            const sampling_rate = responseData.sampling_rate; // Ensure this is included in the response
-
-            axios.post('/download_mseed', {
-                time_indices: time_indices,
-                amplitudes: amplitudes,
-                sampling_rate: sampling_rate
-            }, {
-                responseType: 'blob'
-            })
-            .then(response => {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
+            document.getElementById('saveChartBtn').addEventListener('click', function () {
+                const imageBase64 = waveformChart.toBase64Image();
                 const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'earthquake_hit_points.mseed');
-                document.body.appendChild(link);
+                link.href = imageBase64;
+                link.download = 'waveform_chart.png';
                 link.click();
-            })
-            .catch(error => {
-                console.error('Error:', error);
             });
-        });
-    </script>
+
+            document.getElementById('downloadMseedBtn').addEventListener('click', function () {
+                const time_indices = responseData.time_indices;
+                const amplitudes = responseData.amplitudes;
+                const sampling_rate = responseData.sampling_rate; // Ensure this is included in the response
+
+                axios.post('/download_mseed', {
+                    time_indices: time_indices,
+                    amplitudes: amplitudes,
+                    sampling_rate: sampling_rate
+                }, {
+                    responseType: 'blob'
+                })
+                    .then(response => {
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', 'earthquake_hit_points.mseed');
+                        document.body.appendChild(link);
+                        link.click();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+        </script>
 </body>
+
 </html>

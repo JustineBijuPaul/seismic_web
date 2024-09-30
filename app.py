@@ -40,6 +40,7 @@ def predict(file_path):
     features, y, sr = extract_features(file_path)
     features = scaler.transform([features])
     prediction = clf.predict(features)
+    print(prediction)
 
     # Identify all points where the amplitude exceeds a certain threshold
     threshold = np.mean(y) + 3 * np.std(y)  # Example threshold
@@ -47,7 +48,11 @@ def predict(file_path):
 
     return prediction[0], y, sr, earthquake_indices
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -62,10 +67,10 @@ def upload_file():
             prediction, y, sr, earthquake_indices = predict(file_path)
             os.remove(file_path)  # Remove the file after prediction
             time_labels = [str(timedelta(seconds=i / sr)) for i in range(len(y))]
-            if len(earthquake_indices) > 0:
+            if prediction == 1:
                 amplitudes = [float(y[idx]) for idx in earthquake_indices]  # Convert to float
                 return jsonify({
-                    'prediction': 'Earthquake detected',
+                    'prediction': 'Seismic Activity Detected',
                     'time_indices': earthquake_indices.tolist(),
                     'amplitudes': amplitudes,
                     'time_labels': time_labels,
@@ -74,11 +79,12 @@ def upload_file():
                 })
             else:
                 return jsonify({
-                    'prediction': 'No earthquake detected',
+                    'prediction': 'No Seismic Activity Detected',
                     'time_labels': time_labels,
                     'amplitude_data': y.tolist()
                 })
     return render_template('upload.html')
+
 
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():

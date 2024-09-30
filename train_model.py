@@ -96,7 +96,8 @@ def main():
         "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/train/hit/noise_filtered.mp3",
         "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/train/hit/output.mp3",
         "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/train/hit/output_filtered.mp3",
-        "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/train/hit/Scary sound of earthquake 2018.mp3"
+        "C:UsersJUSTINE BIJU PAULDesktopprojectshackathonseismic_webdatasettrainhitScary sound of earthquake 2018.mp3"
+        "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/test/hit/hitaudio.mp3"
     ]
     no_quake_files = [
         "C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/seismic_web/dataset/train/no-hit/Traffic Sound, Indian Traffic Sound, Traffic noise, vehicle noise, traffic sound, road traffic.mp3",
