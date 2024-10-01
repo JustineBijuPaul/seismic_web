@@ -9,6 +9,7 @@ import joblib
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
+application = app
 
 # Constants
 SAMPLE_RATE = 100
