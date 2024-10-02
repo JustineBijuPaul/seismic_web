@@ -8,6 +8,10 @@ from sklearn.linear_model import LogisticRegression
 import joblib
 from datetime import datetime, timedelta
 from whitenoise import WhiteNoise
+from pymongo import MongoClient
+import gridfs
+from dotenv import load_dotenv
+import tempfile
 
 app = Flask(__name__)
 application = app
@@ -26,22 +30,37 @@ HOP_LENGTH = 256
 clf = joblib.load('earthquake_model.joblib')
 scaler = joblib.load('earthquake_scaler.joblib')
 
-def extract_features(file_path):
-    if file_path.endswith('.mseed'):
-        st = obspy.read(file_path)
+# MongoDB Configuration
+MONGO_URI = os.getenv("MONGO_URL")
+DB_NAME = 'seismic_quake'
+
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+fs = gridfs.GridFS(db)
+
+def extract_features(file_id):
+    with fs.get(file_id) as f:
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(f.read())
+            temp_file_path = temp_file.name
+
+    if temp_file_path.endswith('.mseed'):
+        st = obspy.read(temp_file_path)
         tr = st[0]
         y = tr.data.astype(np.float32)
         sr = tr.stats.sampling_rate
     else:
-        y, sr = librosa.load(file_path, sr=SAMPLE_RATE)
+        y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
+
+    os.remove(temp_file_path)  # Remove the temporary file after processing
 
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=N_MELS, fmin=FMIN, fmax=FMAX, n_fft=FRAME_SIZE, hop_length=HOP_LENGTH)
     log_S = librosa.power_to_db(S, ref=np.max)
     mfcc = librosa.feature.mfcc(S=log_S, n_mfcc=13)
     return np.mean(mfcc, axis=1), y, sr
 
-def predict(file_path):
-    features, y, sr = extract_features(file_path)
+def predict(file_id):
+    features, y, sr = extract_features(file_id)
     features = scaler.transform([features])
     prediction = clf.predict(features)
     print(prediction)
@@ -65,11 +84,8 @@ def upload_file():
         if file.filename == '':
             return jsonify({'error': 'No selected file'})
         if file:
-            filename = file.filename
-            file_path = os.path.join('uploads', filename)
-            file.save(file_path)
-            prediction, y, sr, earthquake_indices = predict(file_path)
-            os.remove(file_path)  # Remove the file after prediction
+            file_id = fs.put(file, filename=file.filename)
+            prediction, y, sr, earthquake_indices = predict(file_id)
             time_labels = [str(timedelta(seconds=i / sr)) for i in range(len(y))]
             if prediction == 1:
                 amplitudes = [float(y[idx]) for idx in earthquake_indices]  # Convert to float
@@ -89,6 +105,7 @@ def upload_file():
                 })
     return render_template('upload.html')
 
+
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():
     data = request.json
@@ -107,5 +124,4 @@ def download_mseed():
     return send_file(mseed_file_path, as_attachment=True, download_name='earthquake_hit_points.mseed')
 
 if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
     app.run(debug=True)
