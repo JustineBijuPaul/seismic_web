@@ -89,7 +89,6 @@ def upload_file():
                 })
     return render_template('upload.html')
 
-
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():
     data = request.json
