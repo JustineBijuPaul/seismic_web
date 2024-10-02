@@ -23,8 +23,8 @@ FRAME_SIZE = 512
 HOP_LENGTH = 256
 
 # Load the trained model and scaler
-clf = joblib.load('C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/web/earthquake_model.joblib')
-scaler = joblib.load('C:/Users/JUSTINE BIJU PAUL/Desktop/projects/hackathon/web/earthquake_scaler.joblib')
+clf = joblib.load('earthquake_model.joblib')
+scaler = joblib.load('earthquake_scaler.joblib')
 
 def extract_features(file_path):
     if file_path.endswith('.mseed'):
