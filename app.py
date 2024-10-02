@@ -7,9 +7,12 @@ import sklearn.preprocessing as preprocessing
 from sklearn.linear_model import LogisticRegression
 import joblib
 from datetime import datetime, timedelta
+from whitenoise import WhiteNoise
 
 app = Flask(__name__)
 application = app
+
+app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/')
 
 # Constants
 SAMPLE_RATE = 100
