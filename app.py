@@ -12,6 +12,8 @@ from pymongo import MongoClient
 import gridfs
 from dotenv import load_dotenv
 import tempfile
+import pandas as pd
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 application = app
@@ -32,9 +34,10 @@ scaler = joblib.load('earthquake_scaler.joblib')
 
 # MongoDB Configuration
 MONGO_URI = os.getenv("MONGO_URL")
+print(f"MONGO_URI: {MONGO_URI}")
 DB_NAME = 'seismic_quake'
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=30000)  # Increase timeout to 30 seconds
 db = client[DB_NAME]
 fs = gridfs.GridFS(db)
 
@@ -49,6 +52,15 @@ def extract_features(file_id):
         tr = st[0]
         y = tr.data.astype(np.float32)
         sr = tr.stats.sampling_rate
+    elif temp_file_path.endswith('.csv'):
+        df = pd.read_csv(temp_file_path)
+        y = df.iloc[:, 0].values.astype(np.float32)
+        sr = SAMPLE_RATE  # Assuming the CSV has the same sample rate
+    elif temp_file_path.endswith('.xml'):
+        tree = ET.parse(temp_file_path)
+        root = tree.getroot()
+        y = [float(elem.text) for elem in root.findall('.//data')]
+        sr = SAMPLE_RATE  # Assuming the XML has the same sample rate
     else:
         y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
 
@@ -104,7 +116,6 @@ def upload_file():
                     'amplitude_data': y.tolist()
                 })
     return render_template('upload.html')
-
 
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():
