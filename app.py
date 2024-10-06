@@ -22,7 +22,6 @@ application = app
 
 app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/')
 
-# Constants
 SAMPLE_RATE = 100
 N_MELS = 128
 FMIN = 0
@@ -30,11 +29,9 @@ FMAX = 19
 FRAME_SIZE = 512
 HOP_LENGTH = 256
 
-# Load the trained model and scaler
 clf = joblib.load('earthquake_model.joblib')
 scaler = joblib.load('earthquake_scaler.joblib')
 
-# MongoDB Configuration
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL")
 print(f"MONGO_URI: {MONGO_URI}")
@@ -60,7 +57,7 @@ def extract_features(file_id):
     else:
         y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
 
-    os.remove(temp_file_path)  # Remove the temporary file after processing
+    os.remove(temp_file_path)
 
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=N_MELS, fmin=FMIN, fmax=FMAX, n_fft=FRAME_SIZE, hop_length=HOP_LENGTH)
     log_S = librosa.power_to_db(S, ref=np.max)
@@ -73,8 +70,7 @@ def predict(file_id):
     prediction = clf.predict(features)
     print(prediction)
 
-    # Identify all points where the amplitude exceeds a certain threshold
-    threshold = np.mean(y) + 3 * np.std(y)  # Example threshold
+    threshold = np.mean(y) + 3 * np.std(y)
     earthquake_indices = np.where(y > threshold)[0]
 
     return prediction[0], y, sr, earthquake_indices
@@ -96,14 +92,14 @@ def upload_file():
             prediction, y, sr, earthquake_indices = predict(file_id)
             time_labels = [str(timedelta(seconds=i / sr)) for i in range(len(y))]
             if prediction == 1:
-                amplitudes = [float(y[idx]) for idx in earthquake_indices]  # Convert to float
+                amplitudes = [float(y[idx]) for idx in earthquake_indices]
                 return jsonify({
                     'prediction': 'Seismic Activity Detected',
                     'time_indices': earthquake_indices.tolist(),
                     'amplitudes': amplitudes,
                     'time_labels': time_labels,
                     'amplitude_data': y.tolist(),
-                    'sampling_rate': sr  # Include the sampling rate in the response
+                    'sampling_rate': sr
                 })
             else:
                 return jsonify({

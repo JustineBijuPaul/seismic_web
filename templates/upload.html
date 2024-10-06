@@ -21,7 +21,6 @@
             width: 100%;
             background-color: #2c2c2d;
             z-index: 1000;
-            /* Ensure it stays on top */
         }
     </style>
 </head>
@@ -80,29 +79,25 @@
             </div>
         </footer>
 
-        <!-- Loader -->
         <div class="loader-container" id="loader-container">
             <div class="loader"></div>
         </div>
 
         <script>
-            let waveformChart; // Declare the chart variable globally
-            let responseData; // Store the response data globally
+            let waveformChart;
+            let responseData;
 
-            // Function to hide the preloader
             function hidePreloader() {
                 const preloader = document.getElementById('preloader');
                 preloader.style.display = 'none';
             }
 
-            // Event listener to hide the preloader once the page has loaded
             window.addEventListener('load', hidePreloader);
 
             document.getElementById('uploadForm').addEventListener('submit', function (event) {
                 event.preventDefault();
                 const formData = new FormData(this);
 
-                // Show the loader
                 document.getElementById('loader-container').style.display = 'flex';
 
                 axios.post('/upload', formData, {
@@ -111,8 +106,8 @@
                     }
                 })
                     .then(response => {
-                        responseData = response.data; // Store the response data
-                        console.log(responseData); // Inspect the response
+                        responseData = response.data;
+                        console.log(responseData);
                         const resultDiv = document.getElementById('result');
                         resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
 
@@ -120,7 +115,6 @@
                         if (responseData.prediction === 'Seismic Activity Detected') {
                             const ctx = document.getElementById('waveformChart').getContext('2d');
 
-                            // Destroy the existing chart if it exists
                             if (waveformChart) {
                                 waveformChart.destroy();
                             }
@@ -155,16 +149,13 @@
                                 }
                             });
 
-                            // Show the save buttons
                             document.querySelector('.button-container').style.display = 'flex';
                         }
 
-                        // Hide the loader
                         document.getElementById('loader-container').style.display = 'none';
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        // Hide the loader in case of error
                         document.getElementById('loader-container').style.display = 'none';
                     });
             });

@@ -50,14 +50,13 @@
     display: flex;
     justify-content: center;
     margin: 20px 0;
-    flex-direction: row; /* Ensure buttons are in one line */
+    flex-direction: row;
 }
 
 .button-container button {
     margin: 0 20px;
 }
 
-/* Loader styles */
 .loader-container {
     display: none;
     position: fixed;
@@ -90,7 +89,6 @@
     }
 }
 
-/* Responsive styles */
 @media (max-width: 1200px) {
     .form-container {
         margin: 100px 50px 20px 50px;
