@@ -28,6 +28,7 @@ numba==0.60.0
 numpy==2.0.2
 obspy==1.4.1
 packaging==24.1
+pandas==2.2.3
 pillow==10.4.0
 platformdirs==4.3.6
 pooch==1.8.2
