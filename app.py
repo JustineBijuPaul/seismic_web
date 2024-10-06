@@ -11,14 +11,11 @@ from pymongo import MongoClient
 import gridfs
 from dotenv import load_dotenv
 import tempfile
-<<<<<<< HEAD
 import csv
 import obspy
 from obspy.core import Trace, Stream
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom.minidom import parseString
-=======
->>>>>>> parent of a72e1ec (update)
 
 app = Flask(__name__)
 application = app
@@ -51,9 +48,7 @@ def extract_features(file_id):
             temp_file.write(f.read())
             temp_file_path = temp_file.name
 
-<<<<<<< HEAD
     y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
-=======
     if temp_file_path.endswith('.mseed'):
         st = obspy.read(temp_file_path)
         tr = st[0]
@@ -61,7 +56,6 @@ def extract_features(file_id):
         sr = tr.stats.sampling_rate
     else:
         y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
->>>>>>> parent of a72e1ec (update)
 
     os.remove(temp_file_path)  # Remove the temporary file after processing
 
@@ -116,7 +110,6 @@ def upload_file():
                 })
     return render_template('upload.html')
 
-<<<<<<< HEAD
 @app.route('/download_png', methods=['POST'])
 def download_png():
     data = request.json
@@ -150,8 +143,6 @@ def download_csv():
         as_attachment=True,
         download_name='waveform_data.csv'
     )
-=======
->>>>>>> parent of a72e1ec (update)
 
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():
