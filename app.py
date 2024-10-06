@@ -35,7 +35,10 @@ clf = joblib.load('earthquake_model.joblib')
 scaler = joblib.load('earthquake_scaler.joblib')
 
 # MongoDB Configuration
+load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL")
+print(f"MONGO_URI: {MONGO_URI}")
+
 DB_NAME = 'seismic_quake'
 
 client = MongoClient(MONGO_URI)
@@ -191,7 +194,6 @@ def download_xml():
         as_attachment=True,
         download_name='waveform_data.xml'
     )
-
 
 if __name__ == '__main__':
     app.run(debug=True)
