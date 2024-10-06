@@ -30,7 +30,7 @@ Seismic Web is a Flask-based web application designed to detect earthquakes from
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/justinebijupaul/seismic_web.git
+    git clone https://github.com/JustineBijuPaul/seismic_web.git
     cd seismic_web
     ```
 
