@@ -2,7 +2,7 @@
     background-color: rgba(0, 0, 0, 0);
     border: 2px solid rgba(255, 255, 255, 0.5);
     padding: 20px;
-    margin: 100px 100px 20px 100px;
+    margin: 150px 100px 20px 100px;
     border-radius: 10px;
     text-align: center;
 }
@@ -79,6 +79,36 @@
     animation: spin 2s linear infinite;
 }
 
+.logo img {
+    width: 40px;
+}
+
+.logo h1 {
+    display: inline;
+    margin-left: 10px;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .logo img {
+        width: 30px;
+    }
+
+    .logo h1 {
+        font-size: 1.2em;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo img {
+        width: 25px;
+    }
+
+    .logo h1 {
+        font-size: 1em;
+    }
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
@@ -91,13 +121,13 @@
 
 @media (max-width: 1200px) {
     .form-container {
-        margin: 100px 50px 20px 50px;
+        margin: 150px 50px 20px 50px;
     }
 }
 
 @media (max-width: 768px) {
     .form-container {
-        margin: 100px 30px 20px 30px;
+        margin: 150px 30px 20px 30px;
     }
 
     .result-section {
