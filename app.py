@@ -1,8 +1,7 @@
 import os
-from flask import Flask, request, render_template, jsonify, send_file
+from flask import Flask, request, render_template, jsonify
 import numpy as np
 import librosa
-import obspy
 import sklearn.preprocessing as preprocessing
 from sklearn.linear_model import LogisticRegression
 import joblib
@@ -12,8 +11,11 @@ from pymongo import MongoClient
 import gridfs
 from dotenv import load_dotenv
 import tempfile
-import pandas as pd
-import xml.etree.ElementTree as ET
+import csv
+import obspy
+from obspy.core import Trace, Stream
+from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.dom.minidom import parseString
 
 app = Flask(__name__)
 application = app
@@ -47,22 +49,7 @@ def extract_features(file_id):
             temp_file.write(f.read())
             temp_file_path = temp_file.name
 
-    if temp_file_path.endswith('.mseed'):
-        st = obspy.read(temp_file_path)
-        tr = st[0]
-        y = tr.data.astype(np.float32)
-        sr = tr.stats.sampling_rate
-    elif temp_file_path.endswith('.csv'):
-        df = pd.read_csv(temp_file_path)
-        y = df.iloc[:, 0].values.astype(np.float32)
-        sr = SAMPLE_RATE  # Assuming the CSV has the same sample rate
-    elif temp_file_path.endswith('.xml'):
-        tree = ET.parse(temp_file_path)
-        root = tree.getroot()
-        y = [float(elem.text) for elem in root.findall('.//data')]
-        sr = SAMPLE_RATE  # Assuming the XML has the same sample rate
-    else:
-        y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
+    y, sr = librosa.load(temp_file_path, sr=SAMPLE_RATE)
 
     os.remove(temp_file_path)  # Remove the temporary file after processing
 
@@ -117,22 +104,88 @@ def upload_file():
                 })
     return render_template('upload.html')
 
+@app.route('/download_png', methods=['POST'])
+def download_png():
+    data = request.json
+    image_base64 = data['image_base64']
+    return send_file(
+        io.BytesIO(base64.b64decode(image_base64.split(',')[1])),
+        mimetype='image/png',
+        as_attachment=True,
+        download_name='waveform_chart.png'
+    )
+
+@app.route('/download_csv', methods=['POST'])
+def download_csv():
+    data = request.json
+    time_labels = data['time_labels']
+    amplitude_data = data['amplitude_data']
+
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Time', 'Amplitude'])
+    cw.writerows(zip(time_labels, amplitude_data))
+
+    output = io.BytesIO()
+    output.write(si.getvalue().encode())
+    output.seek(0)
+    si.close()
+
+    return send_file(
+        output,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='waveform_data.csv'
+    )
+
 @app.route('/download_mseed', methods=['POST'])
 def download_mseed():
     data = request.json
-    earthquake_indices = data['time_indices']
-    amplitudes = data['amplitudes']
-    sr = data['sampling_rate']
+    time_labels = data['time_labels']
+    amplitude_data = data['amplitude_data']
+    sampling_rate = data['sampling_rate']
 
-    # Create a new trace with the earthquake hit points
-    tr = obspy.Trace(data=np.array(amplitudes), header={'sampling_rate': sr})
-    st = obspy.Stream(tr)
+    trace = Trace(data=np.array(amplitude_data, dtype=np.float32), header={'sampling_rate': sampling_rate})
+    stream = Stream([trace])
 
-    # Save the trace to an .mseed file
-    mseed_file_path = os.path.join('uploads', 'earthquake_hit_points.mseed')
-    st.write(mseed_file_path, format='MSEED')
+    output = io.BytesIO()
+    stream.write(output, format='MSEED')
+    output.seek(0)
 
-    return send_file(mseed_file_path, as_attachment=True, download_name='earthquake_hit_points.mseed')
+    return send_file(
+        output,
+        mimetype='application/octet-stream',
+        as_attachment=True,
+        download_name='waveform_data.mseed'
+    )
+
+@app.route('/download_xml', methods=['POST'])
+def download_xml():
+    data = request.json
+    time_labels = data['time_labels']
+    amplitude_data = data['amplitude_data']
+
+    root = Element('WaveformData')
+    for time, amplitude in zip(time_labels, amplitude_data):
+        entry = SubElement(root, 'Entry')
+        time_elem = SubElement(entry, 'Time')
+        time_elem.text = time
+        amplitude_elem = SubElement(entry, 'Amplitude')
+        amplitude_elem.text = str(amplitude)
+
+    xml_str = parseString(tostring(root)).toprettyxml(indent="  ")
+
+    output = io.BytesIO()
+    output.write(xml_str.encode())
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/xml',
+        as_attachment=True,
+        download_name='waveform_data.xml'
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -20,7 +20,8 @@
             top: 0;
             width: 100%;
             background-color: #2c2c2d;
-            z-index: 1000; /* Ensure it stays on top */
+            z-index: 1000;
+            /* Ensure it stays on top */
         }
     </style>
 </head>
@@ -47,7 +48,7 @@
         </header>
         <section class="form-container">
             <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" accept=".mp3, .wav, .mseed, .csv, .xml">
+                <input type="file" name="file" accept=".mp3, .wav">
                 <button type="submit">Upload and Predict</button>
             </form>
         </section>
@@ -56,9 +57,28 @@
             <canvas id="waveformChart" width="800" height="400"></canvas>
             <div class="button-container" style="display:none;">
                 <button id="saveChartBtn">Save Chart as PNG</button>
-                <button id="downloadMseedBtn">Download Hit Points as MSEED</button>
+                <button id="saveCsvBtn">Save Data as CSV</button>
+                <button id="saveMseedBtn">Save Data as MSEED</button>
+                <button id="saveXmlBtn">Save Data as XML</button>
             </div>
         </section>
+        <footer class="s-footer">
+            <div class="row">
+                <div class="column ss-copyright">
+                    <span>© Copyright Seismic Quake 2024</span>
+                    <span>Design by Justine Biju Paul</span>
+                </div>
+                <div class="ss-go-top">
+                    <a class="smoothscroll" title="Back to Top" href="#top">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill-rule="evenodd"
+                            clip-rule="evenodd">
+                            <path
+                                d="M11 2.206l-6.235 7.528-.765-.645 7.521-9 7.479 9-.764.646-6.236-7.53v21.884h-1v-21.883z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </footer>
 
         <!-- Loader -->
         <div class="loader-container" id="loader-container">
@@ -157,24 +177,41 @@
                 link.click();
             });
 
-            document.getElementById('downloadMseedBtn').addEventListener('click', function () {
-                const time_indices = responseData.time_indices;
-                const amplitudes = responseData.amplitudes;
-                const sampling_rate = responseData.sampling_rate; // Ensure this is included in the response
-
-                axios.post('/download_mseed', {
-                    time_indices: time_indices,
-                    amplitudes: amplitudes,
-                    sampling_rate: sampling_rate
-                }, {
-                    responseType: 'blob'
-                })
+            document.getElementById('saveCsvBtn').addEventListener('click', function () {
+                axios.post('/download_csv', responseData)
                     .then(response => {
-                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const blob = new Blob([response.data], { type: 'text/csv' });
                         const link = document.createElement('a');
-                        link.href = url;
-                        link.setAttribute('download', 'earthquake_hit_points.mseed');
-                        document.body.appendChild(link);
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.csv';
+                        link.click();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+
+            document.getElementById('saveMseedBtn').addEventListener('click', function () {
+                axios.post('/download_mseed', responseData)
+                    .then(response => {
+                        const blob = new Blob([response.data], { type: 'application/octet-stream' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.mseed';
+                        link.click();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+
+            document.getElementById('saveXmlBtn').addEventListener('click', function () {
+                axios.post('/download_xml', responseData)
+                    .then(response => {
+                        const blob = new Blob([response.data], { type: 'application/xml' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.xml';
                         link.click();
                     })
                     .catch(error => {
