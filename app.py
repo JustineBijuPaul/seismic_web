@@ -16,6 +16,10 @@ import obspy
 from obspy.core import Trace, Stream
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom.minidom import parseString
+from flask import send_file  # For send_file usage
+import io  # For BytesIO
+import base64  # For base64 encoding/decoding
+
 
 app = Flask(__name__)
 application = app
