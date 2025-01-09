@@ -37,22 +37,28 @@ Seismic Web is a Flask-based web application designed to detect earthquakes from
 2. Install the required Python packages:
 
     ```bash
+    source ~/Desktop/projects/hackathon/seismic_web/venv/bin/activate
+    ```
+
+3. Install the required Python packages:
+
+    ```bash
     pip install -r requirements.txt
     ```
 
-3. Train the model (if not already trained):
+4. Train the model (if not already trained):
 
     ```bash
     python train_model.py
     ```
 
-4. Run the Flask application:
+5. Run the Flask application:
 
     ```bash
     python app.py
     ```
 
-5. Open your web browser and navigate to `http://127.0.0.1:5000/`.
+6. Open your web browser and navigate to `http://127.0.0.1:5000/`.
 
 ## File Structure
 
