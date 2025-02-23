@@ -1,0 +1,108 @@
+{% extends "modern_base.html" %}
+
+{% block title %}Error - Seismic Quake{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .error-card {
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(145deg, rgba(255, 68, 68, 0.1), rgba(255, 68, 68, 0.05));
+        border: 1px solid rgba(255, 68, 68, 0.2);
+    }
+
+    .error-icon {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1.5rem;
+        animation: pulse 2s infinite;
+    }
+
+    .error-title {
+        color: #ff4444;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .error-message {
+        color: var(--color-text);
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .error-details {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: left;
+        font-family: monospace;
+        color: var(--color-text-muted);
+        border: 1px solid rgba(255, 68, 68, 0.2);
+    }
+
+    .home-button {
+        background: var(--gradient-primary);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .home-button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-glow);
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-card">
+        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12" y2="16"/>
+        </svg>
+        
+        <h1 class="error-title">Error Occurred</h1>
+        <p class="error-message">{{ error }}</p>
+        
+        {% if details %}
+        <div class="error-details">
+            <p>Technical details:</p>
+            <code>{{ details }}</code>
+        </div>
+        {% endif %}
+        
+        <a href="/" class="home-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            Return to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,313 @@
+{% extends "modern_base.html" %}
+
+{% block title %}Earthquake History - Seismic Analysis{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    .map-container {
+        margin: 24px 0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-xl);
+    }
+
+    #map {
+        height: 600px;
+        width: 100%;
+    }
+
+    .filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .data-table {
+        overflow-x: auto;
+        margin-top: 24px;
+    }
+
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .modern-table th {
+        background: rgba(109, 93, 252, 0.1);
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+    }
+
+    .modern-table td {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .magnitude-badge {
+        background: var(--gradient-primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .page-header {
+        text-align: center;
+        margin: 80px 0 40px;
+    }
+
+    .content-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* Add sorting styles */
+    .sort-header {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .sort-header:hover {
+        background: rgba(109, 93, 252, 0.2) !important;
+    }
+    
+    .sort-header::after {
+        content: '↕️';
+        margin-left: 5px;
+        opacity: 0.5;
+    }
+    
+    .sort-header.asc::after {
+        content: '↑';
+        opacity: 1;
+    }
+    
+    .sort-header.desc::after {
+        content: '↓';
+        opacity: 1;
+    }
+
+    .pagination-controls {
+        margin-top: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .pagination-info {
+        color: var(--color-muted);
+    }
+    
+    .pagination-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .page-btn {
+        padding: 8px 16px;
+        min-width: 40px;
+        text-align: center;
+    }
+    
+    .page-btn.active {
+        background: var(--color-primary);
+        pointer-events: none;
+    }
+    
+    @media (max-width: 768px) {
+        .pagination-controls {
+            font-size: 14px;
+        }
+        
+        .page-btn {
+            padding: 6px 12px;
+            min-width: 36px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <header class="page-header">
+        <h1 class="heading-xl">Global Earthquake Monitor</h1>
+        <p>Comprehensive seismic activity database</p>
+    </header>
+
+    <section class="modern-card animate-on-scroll">
+        <form class="filters" id="filterForm">
+            <div class="form-group">
+                <label>Time Range (Days)</label>
+                <input type="number" class="modern-input" name="days" value="{{ days }}" min="1" max="36500">
+            </div>
+            <div class="form-group">
+                <label>Minimum Magnitude</label>
+                <input type="number" class="modern-input" name="magnitude" value="{{ min_magnitude }}" min="0.1" max="10" step="0.1">
+            </div>
+            <input type="hidden" name="sort" value="{{ sort_by }}" id="sortField">
+            <input type="hidden" name="order" value="{{ order }}" id="orderField">
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button type="submit" class="modern-btn">Update Data</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="map-container animate-on-scroll">
+        <div id="map"></div>
+    </section>
+
+    <section class="modern-card data-table animate-on-scroll">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th class="sort-header {{ 'asc' if sort_by == 'time' and order == 'asc' else 'desc' if sort_by == 'time' else '' }}" 
+                        data-sort="time">Time (UTC)</th>
+                    <th>Location</th>
+                    <th class="sort-header {{ 'asc' if sort_by == 'magnitude' and order == 'asc' else 'desc' if sort_by == 'magnitude' else '' }}" 
+                        data-sort="magnitude">Magnitude</th>
+                    <th class="sort-header {{ 'asc' if sort_by == 'depth' and order == 'asc' else 'desc' if sort_by == 'depth' else '' }}" 
+                        data-sort="depth">Depth (km)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quake in earthquakes %}
+                <tr>
+                    <td>{{ quake.time }}</td>
+                    <td>{{ quake.place }}</td>
+                    <td><span class="magnitude-badge">{{ quake.magnitude }}</span></td>
+                    <td>{{ "%.2f"|format(quake.depth) }}</td>
+                    <td><a href="{{ quake.url }}" class="modern-btn" target="_blank">Details</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-controls">
+            <div class="pagination-info">
+                {% if total_items > 0 %}
+                    {% set start_item = ((current_page - 1) * per_page) + 1 %}
+                    {% set end_item = start_item + per_page - 1 %}
+                    {% if end_item > total_items %}
+                        {% set end_item = total_items %}
+                    {% endif %}
+                    Showing {{ start_item }} to {{ end_item }} of {{ total_items }} earthquakes
+                {% else %}
+                    No earthquakes found matching the criteria
+                {% endif %}
+            </div>
+            
+            {% if total_items > 0 %}
+                <div class="pagination-buttons">
+                    <!-- Previous button -->
+                    {% if current_page > 1 %}
+                        <a href="{{ url_for('earthquake_history', 
+                            page=current_page-1, 
+                            days=days,
+                            magnitude=min_magnitude,
+                            sort=sort_by,
+                            order=order) }}" 
+                            class="modern-btn page-btn">Previous</a>
+                    {% endif %}
+                    
+                    <!-- Page numbers -->
+                    {% set start_page = current_page - 2 if current_page - 2 > 0 else 1 %}
+                    {% set end_page = start_page + 4 if start_page + 4 <= total_pages else total_pages %}
+                    {% if start_page > 1 %}
+                        <span>...</span>
+                    {% endif %}
+                    
+                    {% for p in range(start_page, end_page + 1) %}
+                        <a href="{{ url_for('earthquake_history', 
+                            page=p, 
+                            days=days,
+                            magnitude=min_magnitude,
+                            sort=sort_by,
+                            order=order) }}" 
+                            class="modern-btn page-btn {% if p == current_page %}active{% endif %}">
+                            {{ p }}
+                        </a>
+                    {% endfor %}
+                    
+                    {% if end_page < total_pages %}
+                        <span>...</span>
+                    {% endif %}
+                    
+                    <!-- Next button -->
+                    {% if current_page < total_pages %}
+                        <a href="{{ url_for('earthquake_history', 
+                            page=current_page+1, 
+                            days=days,
+                            magnitude=min_magnitude,
+                            sort=sort_by,
+                            order=order) }}" 
+                            class="modern-btn page-btn">Next</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script type="text/javascript">
+    // Initialize map
+    var map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Parse earthquake data from server
+    var earthquakeData = JSON.parse('{{ earthquakes|tojson|safe }}');
+    
+    // Add markers for each earthquake
+    earthquakeData.forEach(function(quake) {
+        var marker = L.circleMarker([quake.latitude, quake.longitude], {
+            radius: Math.max(5, quake.magnitude * 2),
+            fillColor: '#ff0000',
+            color: '#000',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.6
+        });
+
+        var popupContent = 
+            '<b>Location:</b> ' + quake.place + '<br>' +
+            '<b>Magnitude:</b> ' + quake.magnitude + '<br>' +
+            '<b>Time:</b> ' + quake.time + '<br>' +
+            '<b>Depth:</b> ' + quake.depth + ' km<br>' +
+            '<a href="' + quake.url + '" target="_blank">More Info</a>';
+
+        marker.bindPopup(popupContent).addTo(map);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sorting functionality
+        document.querySelectorAll('.sort-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const sortField = this.dataset.sort;
+                const currentSort = document.getElementById('sortField').value;
+                const currentOrder = document.getElementById('orderField').value;
+                
+                // Toggle order if same field, otherwise default to desc
+                const newOrder = (sortField === currentSort) 
+                    ? (currentOrder === 'asc' ? 'desc' : 'asc')
+                    : 'desc';
+                
+                document.getElementById('sortField').value = sortField;
+                document.getElementById('orderField').value = newOrder;
+                document.getElementById('filterForm').submit();
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Seismic Analysis{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="background"></div>
+    
+    <!-- Navigation -->
+    <nav class="modern-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <img src="{{ url_for('static', filename='images/logo-w.svg') }}" alt="Logo" width="40">
+                <span>Seismic Quake</span>
+            </a>
+            <div class="nav-links" id="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/earthquake_history" class="nav-link">History</a>
+                <a href="/upload" class="modern-btn">Analyze Now</a>
+            </div>
+            <button class="nav-toggle" id="nav-toggle">
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="modern-footer">
+        <div class="footer-container">
+            <p>&copy; 2024 Seismic Quake. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Base Scripts -->
+    <script>
+        // Navigation toggle
+        document.getElementById('nav-toggle').addEventListener('click', function() {
+            document.getElementById('nav-links').classList.toggle('active');
+            this.classList.toggle('active');
+        });
+
+        // Animation on scroll
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
