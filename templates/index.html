@@ -181,6 +181,23 @@
             <span></span>
             <span></span>
         </div>
+        <header>
+            <a href="{{ url_for('index') }}">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='images/logo-w.svg') }}" alt="Logo" width="60px">
+                    <h1>Seismic Quake</h1>
+                </div>
+            </a>
+            <div class="menu-toggle" onclick="toggleMenu()">
+                <span></span>
+            </div>
+            <nav class="navbar">
+                <a href="#about">About</a>
+                <a href="#about-expertise">Technology</a>
+                <a href="#features">Features</a>
+                <a href="#contact">Reach Me</a>
+            </nav>
+        </header>
         <main class="s-content">
             <section id="intro" class="s-intro target-section">
                 <div class="row intro-content wide">
@@ -318,58 +335,3 @@
 </body>
 
 </html>
-
-{% extends "modern_base.html" %}
-
-{% block content %}
-<section class="hero">
-    <div class="hero__content animate-on-scroll">
-        <h1 class="hero__title">Real-Time Seismic Detection</h1>
-        <p class="hero__subtitle">Advanced machine learning for early earthquake detection and analysis</p>
-        <div class="action-buttons">
-            <a href="{{ url_for('upload_file') }}" class="modern-btn">Analyze Now</a>
-            <a href="#features" class="modern-btn" style="background: rgba(255,255,255,0.1)">Learn More</a>
-        </div>
-    </div>
-</section>
-
-<section id="features" class="section">
-    <div class="container">
-        <h2 class="section-title animate-on-scroll">Key Features</h2>
-        <div class="features-grid">
-            <div class="feature-card animate-on-scroll">
-                <h3>Real-Time Analysis</h3>
-                <p>Process seismic data instantly with our advanced ML model</p>
-            </div>
-            <div class="feature-card animate-on-scroll">
-                <h3>Multiple Formats</h3>
-                <p>Support for MSEED, WAV, and other seismic data formats</p>
-            </div>
-            <div class="feature-card animate-on-scroll">
-                <h3>Visual Analytics</h3>
-                <p>Interactive charts and visualizations of seismic activity</p>
-            </div>
-            <div class="feature-card animate-on-scroll">
-                <h3>Data Export</h3>
-                <p>Export results in multiple formats for further analysis</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="contact" class="section">
-    <div class="container">
-        <div class="modern-card animate-on-scroll">
-            <h2 class="section-title">Get In Touch</h2>
-            <p class="section-subtitle">Have questions about our seismic analysis platform?</p>
-            <div class="contact-grid">
-                <div class="contact-info">
-                    <p><strong>Email:</strong> <a href="mailto:justinebijupaul@gmail.com">justinebijupaul@gmail.com</a></p>
-                    <p><strong>Phone:</strong> <a href="tel:+918826232329">+91 88262 32329</a></p>
-                </div>
-                <a href="mailto:justinebijupaul@gmail.com" class="modern-btn">Send Message</a>
-            </div>
-        </div>
-    </div>
-</section>
-{% endblock %}

@@ -1,489 +1,277 @@
-{% extends "modern_base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Upload Analysis - Seismic Quake{% endblock %}
-
-{% block extra_css %}
-<style>
-    .upload-container {
-        max-width: 800px;
-        margin: 120px auto 40px;
-        padding: 0 20px;
-    }
-
-    .upload-card {
-        background: var(--color-card);
-        border-radius: 16px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-lg);
-    }
-
-    .file-upload {
-        border: 2px dashed rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        transition: border-color 0.3s;
-    }
-
-    .file-upload:hover {
-        border-color: var(--color-primary);
-    }
-
-    #waveformChart {
-        margin-top: 2rem;
-        width: 100% !important;
-        height: 400px !important;
-        border-radius: 12px;
-    }
-
-    .button-container {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-    }
-
-    .result-text {
-        font-size: 1.2rem;
-        font-weight: 500;
-        margin: 1rem 0;
-        color: var(--color-primary-light);
-    }
-
-    #monitoringControls {
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    #alertContainer {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-    }
-
-    .alert {
-        background: var(--gradient-primary);
-        color: white;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Quake</title>
+    <meta name="Seismic detect" content="">
+    <meta name="Justine Biju Paul" content="">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/logo-w.svg') }}">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #2c2c2d;
+            z-index: 1000;
+            padding: 10px;
         }
-        to {
-            transform: translateX(0);
-            opacity: 1;
+
+        .logo img {
+            width: 40px;
         }
-    }
 
-    #preloader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: var(--color-background);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
+        .logo h1 {
+            display: inline;
+            margin-left: 10px;
+            color: white;
+        }
 
-    #loader {
-        width: 50px;
-        height: 50px;
-        border: 3px solid rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        border-top-color: var(--color-primary);
-        animation: spin 1s linear infinite;
-    }
+        @media (max-width: 768px) {
+            .logo img {
+                width: 30px;
+            }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+            .logo h1 {
+                font-size: 1.2em;
+            }
+        }
 
-    .loader-container {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
+        @media (max-width: 480px) {
+            .logo img {
+                width: 25px;
+            }
 
-    .action-buttons button {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
+            .logo h1 {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
 
-    .action-buttons svg {
-        stroke: currentColor;
-    }
-
-    .monitor-status {
-        margin-top: 1rem;
-        padding: 0.5rem;
-        text-align: center;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .amplitude-meter {
-        margin-top: 1rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 8px;
-    }
-
-    .meter-label {
-        color: var(--color-muted);
-        margin-bottom: 0.5rem;
-    }
-
-    .meter-bar {
-        height: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .meter-fill {
-        height: 100%;
-        background: var(--gradient-primary);
-        transform-origin: left;
-        transition: transform 0.1s;
-    }
-
-    .chart-container {
-        position: relative;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-
-    #waveformChart {
-        width: 100% !important;
-        height: 300px !important;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div id="preloader">
-    <div id="loader"></div>
-</div>
-
-<div class="container">
-    <section class="upload-section animate-on-scroll">
-        <h1 class="section-title">Seismic Analysis</h1>
-        <div class="upload-zone" id="dropZone">
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" id="fileInput" accept=".mp3,.wav,.mseed,.csv,.xml" hidden>
-                <div class="upload-content">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                    </svg>
-                    <h3>Drop your file here</h3>
-                    <p>or click to browse</p>
-                </div>
-            </form>
-        </div>
-        <p class="upload-note">Supported formats: .mp3, .wav, .mseed, .csv, .xml</p>
-    </section>
-
-    <section class="results-section" style="display: none;">
-        <div class="modern-card animate-on-scroll">
-            <div id="result" class="result-display"></div>
-            <div class="chart-container">
-                <canvas id="waveformChart" style="width: 100%; height: 400px;"></canvas>
-            </div>
-            <div class="analysis-info" style="margin-top: 1rem; text-align: center;">
-                <div class="amplitude-meter">
-                    <div class="meter-label">Signal Strength</div>
-                    <div class="meter-bar">
-                        <div class="meter-fill"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="action-buttons">
-                <button id="saveChartBtn" class="modern-btn">Save as PNG</button>
-                <button id="saveCsvBtn" class="modern-btn">Save as CSV</button>
-                <button id="saveMseedBtn" class="modern-btn">Save as MSEED</button>
-                <button id="saveXmlBtn" class="modern-btn">Save as XML</button>
-            </div>
-        </div>
-    </section>
-
-    <div id="monitoringControls" class="monitoring-controls" style="display: block;">
-        <div class="modern-card animate-on-scroll">
-            <h3>Real-Time Microphone Monitoring</h3>
-            <div class="action-buttons">
-                <button onclick="startMicrophoneMonitoring()" class="modern-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                    Start Monitoring
-                </button>
-                <button onclick="stopMicrophoneMonitoring()" class="modern-btn" style="background: var(--gradient-warm)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="4" y="4" width="16" height="16" rx="2"/>
-                    </svg>
-                    Stop Monitoring
-                </button>
-            </div>
-            <div id="monitorStatus" class="monitor-status">Not Monitoring</div>
-        </div>
-    </div>
-
-    <div id="alertContainer" class="alert-container"></div>
-
-    <div class="loader-container" id="loader-container">
+<body id="top">
+    <div id="preloader">
         <div id="loader"></div>
     </div>
-</div>
-{% endblock %}
+    <div class="s-pagewrap">
+        <div class="circles">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <header>
+            <a href="{{ url_for('index') }}">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='images/logo-w.svg') }}" alt="Logo">
+                    <h1>Seismic Quake</h1>
+                </div>
+            </a>
+        </header>
+        <section class="form-container">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".mp3, .wav, .mseed, .csv, .xml">
+                <button type="submit">Upload and Predict</button>
+            </form>
+            <br>
+            <br>
+            <p> <b>Please upload .mp3 or .wav files to get the graph. <br>The results will take time to get uploaded due to our budget for the spend is bare minimum.</b> </p>
+        </section>
+        <section class="result-section">
+            <div id="result"></div>
+            <canvas id="waveformChart" width="800" height="400"></canvas>
+            <div class="button-container" style="display:none;">
+                <button id="saveChartBtn">Save Chart as PNG</button>
+                <button id="saveCsvBtn">Save Data as CSV</button>
+                <button id="saveMseedBtn">Save Data as MSEED</button>
+                <button id="saveXmlBtn">Save Data as XML</button>
+            </div>
+        </section>
+        <section id="contact" class="s-contact target-section">
+            <div class="row contact-top">
+                <div class="column lg-12">
+                    <h2 class="text-pretitle">
+                        Get In Touch
+                    </h2>
+                    <p class="h1">
+                        I love to hear from you. Whether you have a question or just want to chat about design, tech
+                        & art — shoot me a message.
+                    </p>
+                </div>
+            </div>
+            <div class="row contact-bottom">
+                <div class="column lg-3 md-5 tab-6 stack-on-550 contact-block">
+                    <h3 class="text-pretitle">Reach me at</h3>
+                    <p class="contact-links">
+                        <a href="mailto:justinebijupaul@gmail.com" class="mailtoui">justinebijupaul@gmail.com</a>
+                        <br>
+                        <a href="tel:+918826232329">+91 88262 32329</a>
+                    </p>
+                </div>
+                <div class="column lg-4 md-12 contact-block">
+                    <a href="mailto:justinebijupaul@gmail.com"
+                        class="mailtoui btn btn--medium u-fullwidth contact-btn">Say
+                        Hello.</a>
+                </div>
+            </div>
+        </section>
+        <footer class="s-footer">
+            <div class="row">
+                <div class="column ss-copyright">
+                    <span>© Copyright Seismic Quake 2024</span>
+                    <span>Design by Justine Biju Paul</span>
+                </div>
+                <div class="ss-go-top">
+                    <a class="smoothscroll" title="Back to Top" href="#top">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill-rule="evenodd"
+                            clip-rule="evenodd">
+                            <path
+                                d="M11 2.206l-6.235 7.528-.765-.645 7.521-9 7.479 9-.764.646-6.236-7.53v21.884h-1v-21.883z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </footer>
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
-<script>
-    let waveformChart;
-    let responseData;
-    let currentFileId = null;
+        <div class="loader-container" id="loader-container">
+            <div class="loader"></div>
+        </div>
 
-    // Wait for DOM to be fully loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize elements
-        const preloader = document.getElementById('preloader');
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const uploadForm = document.getElementById('uploadForm');
-        const resultsSection = document.querySelector('.results-section');
-        const loaderContainer = document.getElementById('loader-container');
+        <script>
+            let waveformChart;
+            let responseData;
 
-        // Hide preloader
-        if (preloader) {
-            setTimeout(() => {
-                preloader.style.opacity = '0';
-                setTimeout(() => {
-                    preloader.style.display = 'none';
-                }, 300);
-            }, 500);
-        }
-
-        // Make drop zone clickable
-        if (dropZone && fileInput) {
-            dropZone.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            // File input change handler
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleUpload(e.target.files[0]);
-                }
-            });
-
-            // Drag and drop handlers
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('drag-over');
-            });
-
-            dropZone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                
-                if (e.dataTransfer.files.length > 0) {
-                    handleUpload(e.dataTransfer.files[0]);
-                }
-            });
-        }
-
-        // File upload handler
-        function handleUpload(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            if (loaderContainer) {
-                loaderContainer.style.display = 'flex';
-            }
-            if (resultsSection) {
-                resultsSection.style.display = 'none';
-            }
-
-            axios.post('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
-            .then(response => {
-                responseData = response.data;
-                const resultDiv = document.getElementById('result');
-                if (resultDiv) {
-                    resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
-                }
-
-                if (responseData.prediction === 'Seismic Activity Detected') {
-                    updateChart(responseData);
-                }
-
-                if (loaderContainer) {
-                    loaderContainer.style.display = 'none';
-                }
-                if (resultsSection) {
-                    resultsSection.style.display = 'block';
-                }
-
-                currentFileId = response.data.file_id;
-                const monitoringControls = document.getElementById('monitoringControls');
-                if (monitoringControls) {
-                    monitoringControls.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (loaderContainer) {
-                    loaderContainer.style.display = 'none';
-                }
-                alert('Error uploading file. Please try again.');
-            });
-        }
-
-        // Chart update function
-        function updateChart(data) {
-            const ctx = document.getElementById('waveformChart');
-            if (!ctx) return;
-
-            if (waveformChart) {
-                waveformChart.destroy();
+            function hidePreloader() {
+                const preloader = document.getElementById('preloader');
+                preloader.style.display = 'none';
             }
 
-            waveformChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.time_labels,
-                    datasets: [{
-                        label: 'Amplitude',
-                        data: data.amplitude_data,
-                        borderColor: 'hsla(36, 72%, 70%, 1)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: 1,
-                        pointRadius: data.amplitude_data.map((val, idx) => 
-                            data.time_indices.includes(idx) ? 5 : 1),
-                        pointBackgroundColor: data.amplitude_data.map((val, idx) => 
-                            data.time_indices.includes(idx) ? 'red' : 'white'),
-                        pointBorderColor: data.amplitude_data.map((val, idx) => 
-                            data.time_indices.includes(idx) ? 'red' : 'transparent'),
-                        pointBorderWidth: data.amplitude_data.map((val, idx) => 
-                            data.time_indices.includes(idx) ? 0 : 1)
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: 'rgba(255, 255, 255, 0.7)'
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: 'rgba(255, 255, 255, 0.7)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgba(255, 255, 255, 0.7)'
-                            }
-                        }
+            window.addEventListener('load', hidePreloader);
+
+            document.getElementById('uploadForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+
+                document.getElementById('loader-container').style.display = 'flex';
+
+                axios.post('/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
                     }
-                }
-            });
-        }
+                })
+                    .then(response => {
+                        responseData = response.data;
+                        console.log(responseData);
+                        const resultDiv = document.getElementById('result');
+                        resultDiv.innerHTML = `<p>${responseData.prediction}</p>`;
 
-        // Initialize download buttons
-        ['saveChartBtn', 'saveCsvBtn', 'saveMseedBtn', 'saveXmlBtn'].forEach(btnId => {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.addEventListener('click', function() {
-                    if (btnId === 'saveChartBtn') {
-                        const imageBase64 = waveformChart.toBase64Image();
+                        console.log(responseData.prediction)
+                        if (responseData.prediction === 'Seismic Activity Detected') {
+                            const ctx = document.getElementById('waveformChart').getContext('2d');
+
+                            if (waveformChart) {
+                                waveformChart.destroy();
+                            }
+
+                            waveformChart = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: responseData.time_labels,
+                                    datasets: [{
+                                        label: 'Amplitude',
+                                        data: responseData.amplitude_data,
+                                        borderColor: 'hsla(36, 72%, 70%, 1)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                        borderWidth: 1,
+                                        pointRadius: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 5 : 1),
+                                        pointBackgroundColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'white'),
+                                        pointBorderColor: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 'red' : 'transparent'),
+                                        pointBorderWidth: responseData.amplitude_data.map((val, idx) => responseData.time_indices.includes(idx) ? 0 : 1)
+                                    }]
+                                },
+                                options: {
+                                    scales: {
+                                        x: {
+                                            type: 'category',
+                                            ticks: {
+                                                callback: function (value, index, values) {
+                                                    return new Date(value * 1000).toISOString().substr(11, 8);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            document.querySelector('.button-container').style.display = 'flex';
+                        }
+
+                        document.getElementById('loader-container').style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('loader-container').style.display = 'none';
+                    });
+            });
+
+            document.getElementById('saveChartBtn').addEventListener('click', function () {
+                const imageBase64 = waveformChart.toBase64Image();
+                const link = document.createElement('a');
+                link.href = imageBase64;
+                link.download = 'waveform_chart.png';
+                link.click();
+            });
+
+            document.getElementById('saveCsvBtn').addEventListener('click', function () {
+                axios.post('/download_csv', responseData)
+                    .then(response => {
+                        const blob = new Blob([response.data], { type: 'text/csv' });
                         const link = document.createElement('a');
-                        link.href = imageBase64;
-                        link.download = 'waveform_chart.png';
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.csv';
                         link.click();
-                    } else if (btnId === 'saveCsvBtn') {
-                        axios.post('/download_csv', responseData)
-                            .then(response => {
-                                const blob = new Blob([response.data], { type: 'text/csv' });
-                                const link = document.createElement('a');
-                                link.href = URL.createObjectURL(blob);
-                                link.download = 'waveform_data.csv';
-                                link.click();
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                            });
-                    } else if (btnId === 'saveMseedBtn') {
-                        axios.post('/download_mseed', responseData)
-                            .then(response => {
-                                const blob = new Blob([response.data], { type: 'application/octet-stream' });
-                                const link = document.createElement('a');
-                                link.href = URL.createObjectURL(blob);
-                                link.download = 'waveform_data.mseed';
-                                link.click();
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                            });
-                    } else if (btnId === 'saveXmlBtn') {
-                        axios.post('/download_xml', responseData)
-                            .then(response => {
-                                const blob = new Blob([response.data], { type: 'application/xml' });
-                                const link = document.createElement('a');
-                                link.href = URL.createObjectURL(blob);
-                                link.download = 'waveform_data.xml';
-                                link.click();
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                            });
-                    }
-                });
-            }
-        });
-    });
-</script>
-{% endblock %}
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+
+            document.getElementById('saveMseedBtn').addEventListener('click', function () {
+                axios.post('/download_mseed', responseData)
+                    .then(response => {
+                        const blob = new Blob([response.data], { type: 'application/octet-stream' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.mseed';
+                        link.click();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+
+            document.getElementById('saveXmlBtn').addEventListener('click', function () {
+                axios.post('/download_xml', responseData)
+                    .then(response => {
+                        const blob = new Blob([response.data], { type: 'application/xml' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'waveform_data.xml';
+                        link.click();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+        </script>
+</body>
+
+</html>
